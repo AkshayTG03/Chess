@@ -1,8 +1,3 @@
-class pawn:
-    def __init__(self, name):
-        self.name = name
-
-
 class piece:
     def __init__(self, name, colour, points):
         self.name = name
@@ -13,14 +8,19 @@ class piece:
         return f'{self.colour}, {self.name}'
 
 
+class pawn(piece):
+    def __init__(self, name, colour, points):
+        super().__init__(name, colour, points)
+
+
 class board:
-    def addPiece(self, pieceType):
+    def addPiece(self, pieceType, colour, pos):
         pass
 
     @staticmethod
     def initializeBoard():
-        pieces = [None for i in range(8)]
-        print(board)
+        pieces = [[None for _ in range(8)] for _ in range(8)]
+        print(pieces)
         pass
 
     def __init__(self):
@@ -29,4 +29,3 @@ class board:
 
 if __name__ == '__main__':
     b = board()
-
