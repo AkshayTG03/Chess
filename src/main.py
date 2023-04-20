@@ -49,6 +49,9 @@ class king(piece):
 # noinspection PyUnresolvedReferences
 class board:
 
+    def printBoard(self):
+        print('\n'.join([' '.join([str(j) for j in i]) for i in self.pieces]), end='\n\n')
+
     # Self is not used
     def self_is_not_used(self):
         pass
@@ -92,7 +95,8 @@ class board:
         self.pieces[pos[0]][pos[1]] = None
 
     # Move piece, TODO promotion
-    def movePiece(self, currPos, targetPos, tmp=0):
+    def movePiece(self, currPos, targetPos, pieces, tmp=0):
+        # TODO temporary piece boards
         pieceType = self.pieces[currPos[0]][currPos[1]].name.lower()
         colour = self.pieces[currPos[0]][currPos[1]].colour
         if self.pieces[targetPos[0]][targetPos[1]] is None:
@@ -107,10 +111,58 @@ class board:
                 self.addPiece(pieceType, colour, targetPos)
                 self.removePiece(currPos)
 
-    # Find all horizontal and vertical(rook) moves possible from a given square
-    def generateLinearMoves(self, pos):
+    # Fen notation add pieces and set game
+    def fen(self, notation):
+        self.pieces.clear()
+        fields = notation.split('/')
+        endFields = fields[-1].split(' ')
+        del fields[-1]
+        fields += endFields
+        for row in range(8):
+            col = 0
+            for s in fields[row]:
+                print(s, end=' ')
+                if str(s).isdigit():
+                    for i in range(int(s)):
+                        self.pieces[row][col] = None
+                        col += 1
+                else:
+                    piece_dict = {'p': 'Bpawn', 'b': 'Bbishop', 'r': 'Brook', 'n': 'Bknight', 'q': 'Bqueen', 'k': 'Bking',
+                                  'P': 'Wpawn', 'B': 'Wbishop', 'R': 'Wrook', 'N': 'Wknight', 'Q': 'Wqueen', 'K': 'Wking'}
+                    self.addPiece(piece_dict[str(s)][1:], piece_dict[str(s)][0], (row, col))
+                    col += 1
+        self.printBoard()
+
+    # Find all pawn moves
+    def generatePawnMoves(self, pos, colour):
         moves = []
-        colour = self.pieces[pos[0]][pos[1]].colour
+        r, c = pos
+        if colour == 'W':
+            moves.append([r - 1, c]) if self.pieces[r - 1][c] is None else None
+            if pos[0] == 7:
+                # Starting squre rule. Can move 2
+                moves.append([r - 2, c]) if self.pieces[r - 2][c] is None else None
+            else:
+                # TODO enpassant
+                oppositePositions = self.getPieces(self.oppositeColour('W'))
+                moves.append([r - 1, c - 1]) if [r - 1, c - 1] in oppositePositions else None
+                moves.append([r - 1, c + 1]) if [r - 1, c + 1] in oppositePositions else None
+                pass
+        else:
+            moves.append([r + 1, c]) if self.pieces[r + 1][c] is None else self.self_is_not_used()
+            if pos[0] == 1:
+                # Starting squre rule. Can move 2
+                moves.append([r + 2, c]) if self.pieces[r + 2][c] is None else self.self_is_not_used()
+            else:
+                # TODO enpassant
+                oppositePositions = self.getPieces(self.oppositeColour('B'))
+                moves.append([r + 1, c - 1]) if [r + 1, c - 1] in oppositePositions else None
+                moves.append([r + 1, c + 1]) if [r + 1, c + 1] in oppositePositions else None
+                pass
+
+    # Find all horizontal and vertical(rook) moves possible from a given square
+    def generateLinearMoves(self, pos, colour):
+        moves = []
         r, c = pos
         # Left
         while c - 1 >= 0:
@@ -163,9 +215,8 @@ class board:
 
     # Find all possible diagonal(bishop) moves possible from a given square taking into consideration enemy and
     # allied pieces
-    def generateDiagonalMoves(self, pos):
+    def generateDiagonalMoves(self, pos, colour):
         moves = []
-        colour = self.pieces[pos[0]][pos[1]].colour
         r, c = pos
         # Top left
         while r - 1 >= 0 and c - 1 >= 0:
@@ -223,23 +274,20 @@ class board:
         colour = selectedPiece.colour
         pseudoLegalMoves = []
         if selectedPiece.name == 'Pawn':
-            print('Pawn is here')
+            pseudoLegalMoves.append(self.generatePawnMoves(pos,colour))
             # Code enpassant and first square double move
         elif selectedPiece.name == 'Rook':
-            print('Rook is here', pos)
-            pseudoLegalMoves.append(self.generateLinearMoves(pos))
+            pseudoLegalMoves.append(self.generateLinearMoves(pos, colour))
             # Code castling
         elif selectedPiece.name == 'Bishop':
-            print('Bishop is here:', pos)
-            pseudoLegalMoves.append(self.generateDiagonalMoves(pos))
+            pseudoLegalMoves.append(self.generateDiagonalMoves(pos, colour))
         elif selectedPiece.name == 'Knight':
-            print('Knight is here')
+            pass
         elif selectedPiece.name == 'Queen':
-            print('Queen is here')
-            pseudoLegalMoves.append(self.generateLinearMoves(pos))
-            pseudoLegalMoves.append(self.generateDiagonalMoves(pos))
+            pseudoLegalMoves.append(self.generateLinearMoves(pos, colour))
+            pseudoLegalMoves.append(self.generateDiagonalMoves(pos, colour))
         elif selectedPiece.name == 'King':
-            print('King is here')
+            pass
         else:
             print("No piece selected!")
         return pseudoLegalMoves
@@ -250,42 +298,15 @@ class board:
         if pseudoLegalMoves is not None:
             for i in pseudoLegalMoves:
                 tempBoard = self.pieces.copy()
+
                 print(i)
         else:
             print("No legal moves")
 
-    def initializeBoard(self):
-        print('\n'.join([' '.join([str(j) for j in i]) for i in self.pieces]), end='\n\n')
-        # Add pieces to the starting position
-        # Add black pawns
-        for i in range(8):
-            self.addPiece('Pawn', 'B', (1, i))
-        # Add white pawns
-        for i in range(8):
-            self.addPiece('Pawn', 'W', (6, i))
-        # Add black pieces
-        self.addPiece('Rook', 'B', (0, 0))
-        self.addPiece('Knight', 'B', (0, 1))
-        self.addPiece('Bishop', 'B', (0, 2))
-        self.addPiece('Queen', 'B', (0, 3))
-        self.addPiece('King', 'B', (0, 4))
-        self.addPiece('Bishop', 'B', (0, 5))
-        self.addPiece('Knight', 'B', (0, 6))
-        self.addPiece('Rook', 'B', (0, 7))
-        # Add white pieces
-        self.addPiece('Rook', 'W', (7, 0))
-        self.addPiece('Knight', 'W', (7, 1))
-        self.addPiece('Bishop', 'W', (7, 2))
-        self.addPiece('Queen', 'W', (7, 3))
-        self.addPiece('King', 'W', (7, 4))
-        self.addPiece('Bishop', 'W', (7, 5))
-        self.addPiece('Knight', 'W', (7, 6))
-        self.addPiece('Rook', 'W', (7, 7))
-        print('\n'.join([' '.join([str(j) for j in i]) for i in self.pieces]))
-
     def __init__(self):
         self.pieces = [[None for _ in range(8)] for _ in range(8)]
-        self.initializeBoard()
+        # Initialize starting position
+        self.fen('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR')
         self.move = 0
         self.turn = 'White'
         self.possibleMoves = None
@@ -294,6 +315,8 @@ class board:
 if __name__ == '__main__':
     b = board()
     print("\nTesting\n")
-    b.addPiece('Bishop', 'W', (3, 3))
-    b.addPiece('Rook', 'W', (2, 0))
-    b.legalMoves((2, 0))
+    b.fen('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR')
+    # b.addPiece('Bishop', 'W', (3, 3))
+    # b.addPiece('Rook', 'W', (2, 0))
+    # b.legalMoves((2, 0))
+    # b.fen('8/5k2/3p4/1p1Pp2p/pP2Pp1P/P4P1K/8/8')
