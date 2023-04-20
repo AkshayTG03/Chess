@@ -46,7 +46,33 @@ class king(piece):
         self.points = 1000
 
 
+# noinspection PyUnresolvedReferences
 class board:
+
+    # Self is not used
+    def self_is_not_used(self):
+        pass
+
+    # Return Opposite Colour
+    def oppositeColour(self, colour):
+        self.self_is_not_used()
+        if colour == 'W':
+            return 'B'
+        else:
+            return 'W'
+
+    # Get a particular piece on board
+    def getPiece(self, pieceType, colour):
+        position = None
+        for i in range(8):
+            for j in range(8):
+                if self.pieces[i][i] is not None:
+                    if self.pieces[i][j].colour == colour and self.pieces[i][j].name == pieceType.lower():
+                        position = [i, j]
+                        break
+        return position
+
+    # Get all positions of pieces of a particular colour
     def getPieces(self, colour):
         positions = []
         for i in range(8):
@@ -56,15 +82,90 @@ class board:
                         positions.append([i, j])
         return positions
 
+    # Add a piece of particular type and colour to the board
     def addPiece(self, pieceType, colour, pos):
-        self.pieces[pos[0]][pos[1]] = globals()[pieceType.lower()](pieceType.capitalize(), colour)
+        if self.pieces[pos[0]][pos[1]] is None:
+            self.pieces[pos[0]][pos[1]] = globals()[pieceType.lower()](pieceType.capitalize(), colour)
 
+    # Remove a piece of particular type and colour to the board
     def removePiece(self, pos):
         self.pieces[pos[0]][pos[1]] = None
 
+    # Move piece, TODO promotion
+    def movePiece(self, currPos, targetPos, tmp=0):
+        pieceType = self.pieces[currPos[0]][currPos[1]].name.lower()
+        colour = self.pieces[currPos[0]][currPos[1]].colour
+        if self.pieces[targetPos[0]][targetPos[1]] is None:
+            self.addPiece(pieceType, colour, targetPos)
+            self.removePiece(currPos)
+        else:
+            if tmp == 0:
+                # TODO Add score
+                pass
+            else:
+                self.removePiece(targetPos)
+                self.addPiece(pieceType, colour, targetPos)
+                self.removePiece(currPos)
+
+    # Find all horizontal and vertical(rook) moves possible from a given square
+    def generateLinearMoves(self, pos):
+        moves = []
+        colour = self.pieces[pos[0]][pos[1]].colour
+        r, c = pos
+        # Left
+        while c - 1 >= 0:
+            if self.pieces[r][c - 1] is None:
+                moves.append([r, c - 1])
+                c -= 1
+            elif self.pieces[r][c - 1].colour != colour:
+                moves.append([r, c - 1])
+                c -= 1
+                break
+            else:
+                break
+        r, c = pos
+        # Bottom
+        while r + 1 <= 7:
+            if self.pieces[r + 1][c] is None:
+                moves.append([r + 1, c])
+                r += 1
+            elif self.pieces[r + 1][c].colour != colour:
+                moves.append([r + 1, c])
+                r += 1
+                break
+            else:
+                break
+        r, c = pos
+        # Right
+        while c + 1 <= 7:
+            if self.pieces[r][c + 1] is None:
+                moves.append([r, c + 1])
+                c += 1
+            elif self.pieces[r][c + 1].colour != colour:
+                moves.append([r, c + 1])
+                c += 1
+                break
+            else:
+                break
+        r, c = pos
+        # Top
+        while r - 1 >= 0:
+            if self.pieces[r - 1][c] is None:
+                moves.append([r - 1, c])
+                r -= 1
+            elif self.pieces[r - 1][c].colour != colour:
+                moves.append([r - 1, c])
+                r -= 1
+                break
+            else:
+                break
+        return moves
+
+    # Find all possible diagonal(bishop) moves possible from a given square taking into consideration enemy and
+    # allied pieces
     def generateDiagonalMoves(self, pos):
         moves = []
-        row, column = pos
+        colour = self.pieces[pos[0]][pos[1]].colour
         r, c = pos
         # Top left
         while r - 1 >= 0 and c - 1 >= 0:
@@ -72,7 +173,7 @@ class board:
                 moves.append([r - 1, c - 1])
                 r -= 1
                 c -= 1
-            elif self.pieces[r - 1][c - 1].colour != self.pieces[row][column].colour:
+            elif self.pieces[r - 1][c - 1].colour != colour:
                 moves.append([r - 1, c - 1])
                 break
             else:
@@ -84,7 +185,7 @@ class board:
                 moves.append([r - 1, c + 1])
                 r -= 1
                 c += 1
-            elif self.pieces[r - 1][c + 1].colour != self.pieces[row][column].colour:
+            elif self.pieces[r - 1][c + 1].colour != colour:
                 moves.append([r - 1, c + 1])
                 break
             else:
@@ -92,18 +193,14 @@ class board:
         r, c = pos
         # Bottom Left
         while r + 1 <= 7 and c - 1 >= 0:
-            print(r + 1, c - 1)
             if self.pieces[r + 1][c - 1] is None:
-                print("None")
                 moves.append([r + 1, c - 1])
                 r += 1
                 c -= 1
-            elif self.pieces[r + 1][c - 1].colour != self.pieces[row][column].colour:
-                print("Enemy Piece")
+            elif self.pieces[r + 1][c - 1].colour != colour:
                 moves.append([r + 1, c - 1])
                 break
             else:
-                print("Allied Piece")
                 break
         r, c = pos
         # Bottom right
@@ -112,7 +209,7 @@ class board:
                 moves.append([r + 1, c + 1])
                 r += 1
                 c += 1
-            elif self.pieces[r + 1][c + 1].colour != self.pieces[row][column].colour:
+            elif self.pieces[r + 1][c + 1].colour != colour:
                 moves.append([r + 1, c + 1])
                 break
             else:
@@ -121,24 +218,41 @@ class board:
 
     def pseudoLegalMoves(self, pos):
         selectedPiece = self.pieces[pos[0]][pos[1]]
+        if selectedPiece is None:
+            return None
         colour = selectedPiece.colour
         pseudoLegalMoves = []
         if selectedPiece.name == 'Pawn':
             print('Pawn is here')
+            # Code enpassant and first square double move
         elif selectedPiece.name == 'Rook':
-            print('Rook is here')
+            print('Rook is here', pos)
+            pseudoLegalMoves.append(self.generateLinearMoves(pos))
+            # Code castling
         elif selectedPiece.name == 'Bishop':
             print('Bishop is here:', pos)
-            print(self.generateDiagonalMoves(pos))
+            pseudoLegalMoves.append(self.generateDiagonalMoves(pos))
         elif selectedPiece.name == 'Knight':
             print('Knight is here')
         elif selectedPiece.name == 'Queen':
             print('Queen is here')
+            pseudoLegalMoves.append(self.generateLinearMoves(pos))
+            pseudoLegalMoves.append(self.generateDiagonalMoves(pos))
         elif selectedPiece.name == 'King':
             print('King is here')
         else:
             print("No piece selected!")
-            return pseudoLegalMoves
+        return pseudoLegalMoves
+
+    # Actual legal moves to check for checks
+    def legalMoves(self, pos):
+        pseudoLegalMoves = self.pseudoLegalMoves(pos)
+        if pseudoLegalMoves is not None:
+            for i in pseudoLegalMoves:
+                tempBoard = self.pieces.copy()
+                print(i)
+        else:
+            print("No legal moves")
 
     def initializeBoard(self):
         print('\n'.join([' '.join([str(j) for j in i]) for i in self.pieces]), end='\n\n')
@@ -181,5 +295,5 @@ if __name__ == '__main__':
     b = board()
     print("\nTesting\n")
     b.addPiece('Bishop', 'W', (3, 3))
-    b.pseudoLegalMoves((3, 3))
-    print(b.getPieces('B'))
+    b.addPiece('Rook', 'W', (2, 0))
+    b.legalMoves((2, 0))
