@@ -49,6 +49,18 @@ class king(piece):
 # noinspection PyUnresolvedReferences
 class board:
 
+    # Self is not used
+    def self_is_not_used(self):
+        pass
+
+    # Return Opposite Colour
+    def oppositeColour(self, colour):
+        self.self_is_not_used()
+        if colour == 'W':
+            return 'B'
+        else:
+            return 'W'
+
     # Get a particular piece on board
     def getPiece(self, pieceType, colour):
         position = None
@@ -72,11 +84,28 @@ class board:
 
     # Add a piece of particular type and colour to the board
     def addPiece(self, pieceType, colour, pos):
-        self.pieces[pos[0]][pos[1]] = globals()[pieceType.lower()](pieceType.capitalize(), colour)
+        if self.pieces[pos[0]][pos[1]] is None:
+            self.pieces[pos[0]][pos[1]] = globals()[pieceType.lower()](pieceType.capitalize(), colour)
 
     # Remove a piece of particular type and colour to the board
     def removePiece(self, pos):
         self.pieces[pos[0]][pos[1]] = None
+
+    # Move piece, TODO promotion
+    def movePiece(self, currPos, targetPos, tmp=0):
+        pieceType = self.pieces[currPos[0]][currPos[1]].name.lower()
+        colour = self.pieces[currPos[0]][currPos[1]].colour
+        if self.pieces[targetPos[0]][targetPos[1]] is None:
+            self.addPiece(pieceType, colour, targetPos)
+            self.removePiece(currPos)
+        else:
+            if tmp == 0:
+                # TODO Add score
+                pass
+            else:
+                self.removePiece(targetPos)
+                self.addPiece(pieceType, colour, targetPos)
+                self.removePiece(currPos)
 
     # Find all horizontal and vertical(rook) moves possible from a given square
     def generateLinearMoves(self, pos):
@@ -220,6 +249,7 @@ class board:
         pseudoLegalMoves = self.pseudoLegalMoves(pos)
         if pseudoLegalMoves is not None:
             for i in pseudoLegalMoves:
+                tempBoard = self.pieces.copy()
                 print(i)
         else:
             print("No legal moves")
