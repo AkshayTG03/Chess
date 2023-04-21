@@ -46,9 +46,24 @@ class king(piece):
         self.points = 1000
 
 
+# Convert given standard notation postion like a1 to Pos used by code (0,0)
+def getPosFromStdNotation(std):
+    column = ord(std[0]) - 97
+    row = 8 - int(std[1])
+    return [row, column]
+
+
+# Convert given standard notation postion like a1 to Pos used by code (0,0)
+def getStdNotationFromPos(pos):
+    column = chr(pos[1] + 97)
+    row = str(8 - pos[0])
+    return column+row
+
+
 # noinspection PyUnresolvedReferences
 class board:
 
+    # Print the board
     def printBoard(self):
         print('\n'.join([' '.join([str(j) for j in i]) for i in self.pieces]), end='\n\n')
 
@@ -115,9 +130,7 @@ class board:
     def fen(self, notation):
         self.pieces = [[None for _ in range(8)] for _ in range(8)]
         fields = notation.split('/')
-        endFields = fields[-1].split(' ')
-        del fields[-1]
-        fields += endFields
+        fields += fields.pop().split(' ')
         for row in range(8):
             col = 0
             for s in fields[row]:
@@ -126,11 +139,17 @@ class board:
                         self.pieces[row][col] = None
                         col += 1
                 else:
-                    piece_dict = {'p': 'Bpawn', 'b': 'Bbishop', 'r': 'Brook', 'n': 'Bknight', 'q': 'Bqueen', 'k': 'Bking',
-                                  'P': 'Wpawn', 'B': 'Wbishop', 'R': 'Wrook', 'N': 'Wknight', 'Q': 'Wqueen', 'K': 'Wking'}
+                    piece_dict = {'p': 'Bpawn', 'b': 'Bbishop', 'r': 'Brook', 'n': 'Bknight', 'q': 'Bqueen',
+                                  'k': 'Bking',
+                                  'P': 'Wpawn', 'B': 'Wbishop', 'R': 'Wrook', 'N': 'Wknight', 'Q': 'Wqueen',
+                                  'K': 'Wking'}
                     self.addPiece(piece_dict[str(s)][1:], piece_dict[str(s)][0], (row, col))
                     col += 1
-        self.printBoard()
+        self.turn = fields[8].upper()
+        # fields[9] is castling
+        # fields[10] is enpassant
+        # fields[11] is draw moves (half moves)
+        self.move = int(fields[12])
 
     # Find all pawn moves
     def generatePawnMoves(self, pos, colour):
@@ -278,7 +297,16 @@ class board:
         elif selectedPiece.name == 'Bishop':
             pseudoLegalMoves = self.generateDiagonalMoves(pos, colour)
         elif selectedPiece.name == 'Knight':
-            rm = [-2, 0, 0, 2, 2, 0, 0, -2]
+            print("Knight is here:", pos)
+            r, c = pos
+            rm = [-2, -1, 1, 2, 2, 1, -1, -2]
+            cm = [1, 2, 2, 1, -1, -2, -2, -1]
+            for i in range(8):
+                pseudoLegalMoves.append([r+rm[i], c+cm[i]] if [r+rm[i], c+cm[i]]
+                                        not in self.getPieces(colour)
+                                        and (r+rm[i] in range(0, 8))
+                                        and (c+cm[i] in range(0, 8))
+                                        else None)
         elif selectedPiece.name == 'Queen':
             pseudoLegalMoves = self.generateLinearMoves(pos, colour)
             pseudoLegalMoves += self.generateDiagonalMoves(pos, colour)
@@ -293,15 +321,16 @@ class board:
         pseudoLegalMoves = self.pseudoLegalMoves(pos)
         if pseudoLegalMoves:
             for i in pseudoLegalMoves:
-                tempBoard = self.pieces.copy()
-                print(i, end='\n')
+                while None in pseudoLegalMoves:
+                    pseudoLegalMoves.remove(None)
+                print(getStdNotationFromPos(i), end='\n')
         else:
             print("No legal moves")
 
     def __init__(self):
         self.pieces = [[None for _ in range(8)] for _ in range(8)]
         # Initialize starting position
-        self.fen('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR')
+        self.fen('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 0')
         self.move = 0
-        self.turn = 'White'
+        self.turn = 'W'
         self.possibleMoves = None
