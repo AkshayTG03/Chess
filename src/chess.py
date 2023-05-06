@@ -131,7 +131,9 @@ class board:
             self.removePiece(pieces, currPos)
 
     # Fen notation add pieces and set game
-    def fen(self, notation):
+    def fen(self, notation:str):
+        """Reads input fen notation and returns pieces on the board and sets board variables related to castling,
+        enpassant, half moves, turn and move number"""
         pieces = [[None for _ in range(8)] for _ in range(8)]
         fields = notation.split('/')
         fields += fields.pop().split(' ')
@@ -149,14 +151,16 @@ class board:
                     self.addPiece(pieces, piece_dict[str(s)][1:], piece_dict[str(s)][0], (row, col))
                     col += 1
         self.turn = fields[8].upper()
-        # fields[9] is castling
-        # fields[10] is enpassant
-        # fields[11] is draw moves (half moves)
+        self.castling = fields[9]
+        self.enpassant = fields[10]
+        self.halfmoves = fields[11]
         self.move = int(fields[12])
         return pieces
 
     # Find all pawn moves
     def generatePawnMoves(self, pieces, pos, colour):
+        """Finds all possible pawn moves for a given pawn including that of possibility of moving 2 squares
+        from the beginning rank and diagonal capture of enemy pieces."""
         moves = []
         r, c = pos
         if colour == 'W':
@@ -293,7 +297,6 @@ class board:
         check = False
         oppPieces = self.getPieces(pieces, colour)
         kingPos = self.getPiece(pieces, 'king', self.oppositeColour(colour))
-        print("King Pos:", kingPos)
         for p in oppPieces:
             pseudoLegalMoves = self.pseudoLegalMoves(pieces, p)
             if kingPos in pseudoLegalMoves:
@@ -310,6 +313,7 @@ class board:
         if selectedPiece.name == 'Pawn':
             pseudoLegalMoves = self.generatePawnMoves(pieces, pos, colour)
             # Code enpassant
+            # TODO Promotion
         elif selectedPiece.name == 'Rook':
             pseudoLegalMoves = self.generateLinearMoves(pieces, pos, colour)
             # Code castling
@@ -364,9 +368,14 @@ class board:
         else:
             print("No legal moves")
 
-    def __init__(self):
-        self.pieces = [[None for _ in range(8)] for _ in range(8)]
-        # Initialize starting position
-        # self.pieces = self.fen('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 0')
-        self.move = 0
-        self.turn = 'W'
+    def __init__(self, notation=None):
+        if notation is None:
+            self.pieces = [[None for _ in range(8)] for _ in range(8)]
+            self.move = 0
+            self.turn = 'W'
+            self.castling = 'KQkq'
+            self.enpassant = '-'
+            self.halfmoves = 0
+        else:
+            self.pieces = self.fen(notation)
+
