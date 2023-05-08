@@ -1,8 +1,33 @@
 import chess as ch
 import pygame
 
+def evaluatePosition(board, pieces):
+    pass
+def gameStateCheck(board:ch.board, pieces) -> int:
+    """Returns an integer corresponding to game state. 0->Can Continue 1->Checkmate 2->Stalemate 3->Draw.
+    Draw condition to be implemented"""
+    end = 0
+    possibleMoves = board.allPossibleMoves(pieces, board.turn)
+    canMove = False
+    for values in possibleMoves.values():
+        if values:
+            canMove = True
+            break
+    if not canMove:
+        if board.checkForcheck(pieces, board.turn):
+            #king is in check
+            end = 1
+            print("Checkmate!", board.fullColour(board.oppositeColour(board.turn)),  "Wins!")
+        else:
+            #stalemate
+            end = 2
+            print("Stalemate!")
+    return end
+
 def drawBG(win):
-    """Draw the board by first setting the entire board to a colour and then placing the opposite colour alternatively."""
+    """Draw the board by first setting the entire board to a colour and then placing the opposite colour
+     alternatively.
+    """
     win.fill(blackBgClr)
     for row in range(rows):
         for col in range(row%2, rows, 2):
@@ -15,10 +40,10 @@ def drawPieces(win, pieces):
             if piece is None:
                 continue
             else:
-                img = pygame.transform.scale(pygame.image.load("images/"+ str(piece)+".png"), (scaleSize*squareSize,scaleSize*
-                                                                                               squareSize))
-                win.blit(img, pygame.Rect(squareSize*(c + (1-scaleSize)/2), squareSize*(r + (1-scaleSize)/2), squareSize,
-                                          squareSize))
+                img = pygame.transform.scale(pygame.image.load("images/"+ str(piece)+".png"),
+                                             (scaleSize*squareSize,scaleSize*squareSize))
+                win.blit(img, pygame.Rect(squareSize*(c + (1-scaleSize)/2), squareSize*(r + (1-scaleSize)/2),
+                                          squareSize, squareSize))
 
 def drawPossibleMoves(win, legalMoves):
     if legalMoves is not None:
@@ -47,6 +72,7 @@ def main():
                         if b.legalMoves(p, selectedPiece) is not None:
                             if [r, c] in b.legalMoves(p, selectedPiece):
                                 b.movePiece(p, selectedPiece, [r, c])
+                                gameStateCheck(b, p)
                                 selectedPiece = []
                             else:
                                 selectedPiece = [r, c]
@@ -75,11 +101,11 @@ if __name__ == '__main__':
     possibleMoveClr = (59, 191, 19)
     FPS = 30
     #Init
-    b = ch.board('8/p7/8/1P6/8/6k1/8/3K4 b - - 0 1')
+    b = ch.board('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1')
     p = b.pieces
     b.generateFen(p)
     #p = b.fen('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1')
-    #for checking enpassant 8/p7/8/1P6/8/6k1/8/3K4 b - - 0 1
+    #for checking enpassant 8/p7/8/1P6/8/8/6k1/R3K3 b - - 0 1
     '''
     b.addPiece(p, 'queen', 'W', ch.getPosFromStdNotation('b2'))
     b.addPiece(p, 'king', 'W', ch.getPosFromStdNotation('a1'))

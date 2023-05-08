@@ -66,6 +66,13 @@ def getStdNotationFromPos(pos):
 # noinspection PyUnresolvedReferences
 class board:
 
+    #Return full colour given short form
+    def fullColour(self, colour):
+        self.self_is_not_used()
+        if colour == 'W':
+            return  "White"
+        else:
+            return "Black"
     # Print the board
     def printBoard(self, pieces):
         self.self_is_not_used()
@@ -128,7 +135,6 @@ class board:
             enTargetPos = self.checkEnpassant(currPos, colour)
             if targetPos == enTargetPos and pieceType == 'pawn':
                 if colour == 'W':
-                    print("Im trying to enpassant your ass")
                     self.removePiece(pieces, [enTargetPos[0] + 1, enTargetPos[1]])
                     self.removePiece(pieces, currPos)
                     self.addPiece(pieces, pieceType, colour, targetPos)
@@ -173,13 +179,79 @@ class board:
                             self.addPiece(pieces, pieceType, colour, targetPos)
                             self.removePiece(pieces, currPos)
         #King
+        if pieceType == 'king':
+            if colour == 'W':
+                if getStdNotationFromPos(targetPos) == 'c1' and currPos == getPosFromStdNotation('e1'):
+                    #White Queen side castling
+                    self.removePiece(pieces,currPos)
+                    self.removePiece(pieces, getPosFromStdNotation('a1'))
+                    self.addPiece(pieces, 'king', colour, getPosFromStdNotation('c1'))
+                    self.addPiece(pieces, 'rook', colour, getPosFromStdNotation('d1'))
+                    self.castling = self.castling.replace('Q', '')
+                    self.castling = self.castling.replace('K', '')
+                elif getStdNotationFromPos(targetPos) == 'g1' and currPos == getPosFromStdNotation('e1'):
+                    #White King side castling
+                    self.removePiece(pieces, currPos)
+                    self.removePiece(pieces, getPosFromStdNotation('h1'))
+                    self.addPiece(pieces, 'king', colour, getPosFromStdNotation('g1'))
+                    self.addPiece(pieces, 'rook', colour, getPosFromStdNotation('f1'))
+                    self.castling = self.castling.replace('K', '')
+                    self.castling = self.castling.replace('Q', '')
+                else:
+                    #Else normal move
+                    if pieces[targetPos[0]][targetPos[1]] is None:
+                        self.addPiece(pieces, pieceType, colour, targetPos)
+                        self.removePiece(pieces, currPos)
+                    else:
+                        self.removePiece(pieces, targetPos)
+                        self.addPiece(pieces, pieceType, colour, targetPos)
+                        self.removePiece(pieces, currPos)
+                    self.castling = self.castling.replace('Q', '')
+                    self.castling = self.castling.replace('K', '')
+            else:
+                if getStdNotationFromPos(targetPos) == 'c8' and currPos == getPosFromStdNotation('e8'):
+                    #Black Queen side castling
+                    self.removePiece(pieces,currPos)
+                    self.removePiece(pieces, getPosFromStdNotation('a8'))
+                    self.addPiece(pieces, 'king', colour, getPosFromStdNotation('c8'))
+                    self.addPiece(pieces, 'rook', colour, getPosFromStdNotation('d8'))
+                    self.castling = self.castling.replace('q', '')
+                    self.castling = self.castling.replace('k', '')
+                elif getStdNotationFromPos(targetPos) == 'g8' and currPos == getPosFromStdNotation('e8'):
+                    #Black King side castling
+                    self.removePiece(pieces, currPos)
+                    self.removePiece(pieces, getPosFromStdNotation('h8'))
+                    self.addPiece(pieces, 'king', colour, getPosFromStdNotation('g8'))
+                    self.addPiece(pieces, 'rook', colour, getPosFromStdNotation('f8'))
+                    self.castling = self.castling.replace('k', '')
+                    self.castling = self.castling.replace('q', '')
+                else:
+                    #Else normal move
+                    if pieces[targetPos[0]][targetPos[1]] is None:
+                        self.addPiece(pieces, pieceType, colour, targetPos)
+                        self.removePiece(pieces, currPos)
+                    else:
+                        self.removePiece(pieces, targetPos)
+                        self.addPiece(pieces, pieceType, colour, targetPos)
+                        self.removePiece(pieces, currPos)
+                    self.castling = self.castling.replace('q', '')
+                    self.castling = self.castling.replace('k', '')
         #Everything other than king
-        if pieceType != 'pawn': # and pieceType != 'king':
+        if pieceType != 'pawn'  and pieceType != 'king':
+            # check if rook has moved to remove castling criteria
+            if pieceType == 'rook':
+                if currPos == getPosFromStdNotation('a1'):
+                    self.castling = self.castling.replace('Q', '')
+                elif currPos == getPosFromStdNotation('h1'):
+                    self.castling = self.castling.replace('K', '')
+                elif currPos == getPosFromStdNotation('a8'):
+                    self.castling = self.castling.replace('q', '')
+                elif currPos == getPosFromStdNotation('h8'):
+                    self.castling = self.castling.replace('k', '')
             if pieces[targetPos[0]][targetPos[1]] is None:
                 self.addPiece(pieces, pieceType, colour, targetPos)
                 self.removePiece(pieces, currPos)
             else:
-                # TODO add score
                 self.removePiece(pieces, targetPos)
                 self.addPiece(pieces, pieceType, colour, targetPos)
                 self.removePiece(pieces, currPos)
@@ -190,8 +262,17 @@ class board:
                 self.turn = 'W'
                 self.move += 1
             self.generateFen(pieces)
+        if not self.castling:
+            self.castling = '-'
         if not enpassantAssigned:
             self.enpassant = '-'
+
+    #Get all possible moves for a given colour
+    def allPossibleMoves(self, pieces, colour) -> dict:
+        """ Returns all possible moves given a colour"""
+        myPieces = self.getPieces(pieces, colour)
+        moves = {getStdNotationFromPos(i):self.legalMoves(pieces,i) for i in myPieces}
+        return  moves
 
     #Generate fen from given board position
     def generateFen(self, pieces):
@@ -250,27 +331,22 @@ class board:
         self.move = int(fields[12])
         return pieces
 
+    #Return enpassant moves if possible
     def checkEnpassant(self, pos, colour):
         self.self_is_not_used()
         move = []
-        print("Current pos:", pos, self.enpassant)
         if self.enpassant == '-':
             return None
         else:
             targetPos = getPosFromStdNotation(self.enpassant)
-            print("Target pos:", targetPos)
             if colour == 'W':
                 if targetPos[0] == 2:
-                    print("yes targetpos[0] == 2 and white")
-                    print([pos[0]-1, pos[0]-1])
                     if ([pos[0]-1, pos[1]-1] == targetPos) or ([pos[0]-1, pos[1]+1] == targetPos):
-                        print("Moving target")
                         move = targetPos
             elif colour == 'B':
                 if targetPos[1] == 5:
                     if ([pos[0]+1, pos[1]-1] == targetPos) or ([pos[0]+1, pos[1]+1] == targetPos):
                         move = targetPos
-        print(move)
         return  move
 
 
@@ -280,7 +356,6 @@ class board:
         from the beginning rank and diagonal capture of enemy pieces."""
         moves = []
         r, c = pos
-        print("Pos before enpassant:" , pos)
         if colour == 'W':
             moves.append([r - 1, c]) if pieces[r - 1][c] is None else None
             if pos[0] == 6:
@@ -298,7 +373,6 @@ class board:
             moves.append([r + 1, c - 1]) if [r + 1, c - 1] in oppositePositions else None
             moves.append([r + 1, c + 1]) if [r + 1, c + 1] in oppositePositions else None
         # En passant
-        print("Pos before enpassant 2:", pos)
         if self.checkEnpassant(pos, colour):
             moves.append(self.checkEnpassant(pos, colour))
         return moves
@@ -412,6 +486,35 @@ class board:
                 break
         return moves
 
+    #Return possbile king moves for caslting
+    def checkCaslting(self, pieces, colour):
+        moves = []
+        if colour == 'W':
+            if 'K' in self.castling:
+                f1 = getPosFromStdNotation('f1')
+                g1 = getPosFromStdNotation('g1')
+                if pieces[g1[0]][g1[1]] is None and pieces[f1[0]][f1[1]] is None:
+                    moves.append(g1)
+            if 'Q' in self.castling:
+                b1 = getPosFromStdNotation('b1')
+                c1 = getPosFromStdNotation('c1')
+                d1 = getPosFromStdNotation('d1')
+                if pieces[b1[0]][b1[1]] is None and pieces[c1[0]][c1[1]] is None and pieces[d1[0]][d1[1]] is None:
+                    moves.append(c1)
+        else:
+            if 'k' in self.castling:
+                f8 = getPosFromStdNotation('f8')
+                g8 = getPosFromStdNotation('g8')
+                if pieces[g8[0]][g8[1]] is None and pieces[f8[0]][f8[1]] is None:
+                    moves.append(g8)
+            if 'q' in self.castling:
+                b8= getPosFromStdNotation('b8')
+                c8 = getPosFromStdNotation('c8')
+                d8 = getPosFromStdNotation('d8')
+                if pieces[b8[0]][b8[1]] is None and pieces[c8[0]][c8[1]] is None and pieces[d8[0]][d8[1]] is None:
+                    moves.append(c8)
+        return  moves
+
     # Check if the colour can check the opposite colour
     def checkForcheck(self, pieces, colour):
         check = False
@@ -462,6 +565,8 @@ class board:
                                         and (r + rm[i] in range(0, 8))
                                         and (c + cm[i] in range(0, 8))
                                         else None)
+            #Castling
+            pseudoLegalMoves += self.checkCaslting(pieces,colour)
         else:
             print("No piece selected!")
         return pseudoLegalMoves
