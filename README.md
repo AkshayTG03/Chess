@@ -6,7 +6,7 @@ Made by Akshay as a hobby project to understand working with python and to learn
 
 ## Completed Features:
 * Basic moves of pieces
-* Special rules like castling and enpassant and pormotion of pawn on the back rank
+* Special rules like castling and enpassant and promotion of pawn on the back rank
 * Playable GUI with pygame
 * Checking of game states such as checkmate, stalemate etc.
 
